@@ -31,7 +31,7 @@ plt.switch_backend('agg')
 
 parser = argparse.ArgumentParser(description='Training on Diabetic Retinopathy Dataset')
 parser.add_argument('--batch_size', '-b', default=90, type=int, help='batch size')
-parser.add_argument('--epochs', '-e', default=90, type=int, help='training epochs')
+parser.add_argument('--epochs', '-e', default=3, type=int, help='training epochs')
 parser.add_argument('--lr', default=1e-3, type=float, help='learning rate')
 parser.add_argument('--cuda', default=torch.cuda.is_available(), type=bool, help='use gpu or not')
 parser.add_argument('--step_size', default=30, type=int, help='learning rate decay interval')
@@ -39,7 +39,7 @@ parser.add_argument('--gamma', default=0.1, type=float, help='learning rate deca
 parser.add_argument('--interval_freq', '-i', default=12, type=int, help='printing log frequence')
 parser.add_argument('--data', '-d', default='./data/data_augu', help='path to dataset')
 parser.add_argument('--prefix', '-p', default='classifier', type=str, help='folder prefix')
-parser.add_argument('--best_model_path', default='model_best.pth.tar', help='best model saved path')
+parser.add_argument('--best_model_path', default='model_best_new.pth.tar', help='best model saved path')
 parser.add_argument('--is_focal_loss', '-f', action='store_false',
                     help='use focal loss or common loss(i.e. cross ectropy loss)(default: true)')
 
@@ -51,7 +51,7 @@ def main():
     args = parser.parse_args()
     # save source script
     set_prefix(args.prefix, __file__)
-    model = models.densenet121(pretrained=False, num_classes=2)
+    model = models.resnet18(pretrained=True)
     if args.cuda:
         model = DataParallel(model).cuda()
     else:
@@ -61,7 +61,7 @@ def main():
     # accelerate the speed of training
     cudnn.benchmark = True
 
-    train_loader, val_loader = load_dataset()
+    train_loader, val_loader, test_loader = load_dataset()
     # class_names=['LESION', 'NORMAL']
     class_names = train_loader.dataset.classes
     print(class_names)
@@ -94,6 +94,7 @@ def main():
     # compute validate meter such as confusion matrix
     compute_validate_meter(model, add_prefix(args.prefix, args.best_model_path), val_loader)
     # save running parameter setting to json
+    test(model, test_loader)
     write(vars(args), add_prefix(args.prefix, 'paras.txt'))
 
 
@@ -176,6 +177,7 @@ def load_dataset():
     if args.data == './data/data_augu':
         traindir = os.path.join(args.data, 'train')
         valdir = os.path.join(args.data, 'val')
+        testdir = os.path.join(args.data, 'test')
         mean = [0.5186, 0.5186, 0.5186]
         std = [0.1968, 0.1968, 0.1968]
         normalize = transforms.Normalize(mean, std)
@@ -190,8 +192,14 @@ def load_dataset():
             transforms.ToTensor(),
             normalize,
         ])
+        test_transforms = transforms.Compose([
+            transforms.CenterCrop(224),
+            transforms.ToTensor(),
+            normalize,
+        ])
         train_dataset = ImageFolder(traindir, train_transforms)
         val_dataset = ImageFolder(valdir, val_transforms)
+        test_dataset = ImageFolder(testdir, test_transforms)
         print('load data-augumentation dataset successfully!!!')
     else:
         raise ValueError("parameter 'data' that means path to dataset must be in "
@@ -207,7 +215,14 @@ def load_dataset():
                             shuffle=False,
                             num_workers=1,
                             pin_memory=True if args.cuda else False)
-    return train_loader, val_loader
+
+    test_loader = DataLoader(test_dataset,
+                            batch_size=args.batch_size,
+                            shuffle=False,
+                            num_workers=1,
+                            pin_memory=True if args.cuda else False)
+
+    return train_loader, val_loader, test_loader
 
 
 def train(train_loader, model, optimizer, criterion, epoch):
@@ -239,10 +254,10 @@ def train(train_loader, model, optimizer, criterion, epoch):
         if idx % args.interval_freq == 0:
             print('Train Epoch: {} [{}/{} ({:.0f}%)]\tLoss: {:.6f}'.format(
                 epoch + 1, idx * len(inputs), len(train_loader.dataset),
-                100. * idx / len(train_loader), loss.data[0]))
+                100. * idx / len(train_loader), loss.data))
 
         # statistics
-        running_loss += loss.data[0] * inputs.size(0)
+        running_loss += loss.data * inputs.size(0)
         running_corrects += torch.sum(preds == labels.data)
 
     epoch_loss = running_loss / len(train_loader.dataset)
@@ -260,7 +275,7 @@ def validate(model, val_loader, criterion):
             data, target = data.cuda(), target.cuda()
         data, target = Variable(data, volatile=True), Variable(target)
         output = model(data)
-        test_loss += criterion(output, target).data[0]
+        test_loss += criterion(output, target).data
         # get the index of the max log-probability
         pred = output.data.max(1, keepdim=True)[1]
         correct += pred.eq(target.data.view_as(pred)).long().cpu().sum()
@@ -271,6 +286,19 @@ def validate(model, val_loader, criterion):
         test_loss, correct, len(val_loader.dataset), test_acc))
     return test_acc
 
+def test(model, test_loader):
+  # model.resnet18(pretrained=True)
+  model.eval()
+  nonzero = 0
+  size = 0
+  for data, target in test_loader:
+    data, target = data.cuda(), target.cuda()
+    data= Variable(data, volatile=True)
+    output = model(data)
+    pred = output.data.max(1, keepdim=True)[1]
+    print("\n5/5 test : {}\n".format(pred))
+    nonzero += np.count_nonzero(pred)
+    size += pred.size()
 
 if __name__ == '__main__':
     main()
