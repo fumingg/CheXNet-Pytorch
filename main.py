@@ -94,7 +94,7 @@ def main():
     # compute validate meter such as confusion matrix
     compute_validate_meter(model, add_prefix(args.prefix, args.best_model_path), val_loader)
     # save running parameter setting to json
-    test(model, test_loader)
+    test(model, test_loader, criterion)
     write(vars(args), add_prefix(args.prefix, 'paras.txt'))
 
 
@@ -282,23 +282,30 @@ def validate(model, val_loader, criterion):
 
     test_loss /= len(val_loader.dataset)
     test_acc = 100. * correct / len(val_loader.dataset)
-    print('\nTest set: Average loss: {:.4f}, Accuracy: {}/{} ({:.3f}%)\n'.format(
+    print('\nValidation set: Average loss: {:.4f}, Accuracy: {}/{} ({:.3f}%)\n'.format(
         test_loss, correct, len(val_loader.dataset), test_acc))
     return test_acc
 
-def test(model, test_loader):
+def test(model, test_loader, criterion):
   # model.resnet18(pretrained=True)
   model.eval()
-  nonzero = 0
-  size = 0
+  test_loss = 0
+  correct = 0
   for data, target in test_loader:
-    data, target = data.cuda(), target.cuda()
-    data= Variable(data, volatile=True)
-    output = model(data)
-    pred = output.data.max(1, keepdim=True)[1]
-    print("\n5/5 test : {}\n".format(pred))
-    nonzero += np.count_nonzero(pred)
-    size += pred.size()
+      if args.cuda:
+          data, target = data.cuda(), target.cuda()
+      data, target = Variable(data, volatile=True), Variable(target)
+      output = model(data)
+      test_loss += criterion(output, target).data
+      # get the index of the max log-probability
+      pred = output.data.max(1, keepdim=True)[1]
+      correct += pred.eq(target.data.view_as(pred)).long().cpu().sum()
+
+  test_loss /= len(test_loader.dataset)
+  test_acc = 100. * correct / len(test_loader.dataset)
+  print('\nTest set: Average loss: {:.4f}, Accuracy: {}/{} ({:.3f}%)\n'.format(
+      test_loss, correct, len(test_loader.dataset), test_acc))
+  return test_acc
 
 if __name__ == '__main__':
     main()
