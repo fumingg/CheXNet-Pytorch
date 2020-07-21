@@ -31,7 +31,7 @@ plt.switch_backend('agg')
 
 parser = argparse.ArgumentParser(description='Training on Diabetic Retinopathy Dataset')
 parser.add_argument('--batch_size', '-b', default=90, type=int, help='batch size')
-parser.add_argument('--epochs', '-e', default=3, type=int, help='training epochs')
+parser.add_argument('--epochs', '-e', default=90, type=int, help='training epochs')
 parser.add_argument('--lr', default=1e-3, type=float, help='learning rate')
 parser.add_argument('--cuda', default=torch.cuda.is_available(), type=bool, help='use gpu or not')
 parser.add_argument('--step_size', default=30, type=int, help='learning rate decay interval')
@@ -117,7 +117,10 @@ def compute_validate_meter(model, best_model_path, val_loader):
         probas_y.extend(output.data.cpu().numpy().tolist())
         pred_y.extend(output.data.cpu().max(1, keepdim=True)[1].numpy().flatten().tolist())
         test_y.extend(target.data.cpu().numpy().flatten().tolist())
-
+    i=0
+    for item in pred_y:
+        print('\npredit is: {}, target is: {}\n'.format(item, test_y[i]))
+        i += 1
     confusion = confusion_matrix(pred_y, test_y)
     plot_confusion_matrix(confusion,
                           classes=val_loader.dataset.classes,
