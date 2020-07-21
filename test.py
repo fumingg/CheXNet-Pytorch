@@ -31,12 +31,19 @@ from utils.FocalLoss import FocalLoss
 
 def test(model, test_loader, criterion):
   model.eval()
-  for data in test_loader:
-    data = data.cuda()
-    data = Variable(data, volatile=True)
+
+  pred_y = list()
+  test_y = list()
+  probas_y = list()
+
+  for data, target in test_loader:
+    data, target = data.cuda(), target.cuda()
+
+    data, target = Variable(data, volatile=True), Variable(target)
     output = model(data)
-    pred = output.data.max(1, keepdim=True)[1]
-    print("\n5/5 test : {}\n".format(pred))
+    probas_y.extend(output.data.cpu().numpy().tolist())
+    pred_y.extend(output.data.cpu().max(1, keepdim=True)[1].numpy().flatten().tolist())
+    test_y.extend(target.data.cpu().numpy().flatten().tolist())
 
 def load_dataset():
   testdir = os.path.join('./data/data_augu', 'test')
