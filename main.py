@@ -101,6 +101,8 @@ def main():
 def compute_validate_meter(model, best_model_path, val_loader):
     checkpoint = torch.load(best_model_path)
     model.load_state_dict(checkpoint['state_dict'])
+    for item in checkpoint['state_dict']:
+        print(item.key)
     best_acc = checkpoint['best_accuracy']
     print('best accuracy={:.4f}'.format(best_acc))
     pred_y = list()
