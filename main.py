@@ -51,7 +51,7 @@ def main():
     args = parser.parse_args()
     # save source script
     set_prefix(args.prefix, __file__)
-    model = models.resnet18(pretrained=True)
+    model = models.resnet101(pretrained=True)
     if args.cuda:
         model = DataParallel(model).cuda()
     else:
@@ -83,7 +83,7 @@ def main():
         best_acc = max(cur_accuracy, best_acc)
         save_checkpoint({
             'epoch': epoch + 1,
-            'arch': 'resnet18',
+            'arch': 'resnet101',
             'state_dict': model.state_dict(),
             'best_accuracy': best_acc,
             'optimizer': optimizer.state_dict(),
@@ -94,7 +94,7 @@ def main():
     # compute validate meter such as confusion matrix
     compute_validate_meter(model, add_prefix(args.prefix, args.best_model_path), val_loader)
     # save running parameter setting to json
-    validate(model, test_loader, criterion)
+    # validate(model, test_loader, criterion)
     write(vars(args), add_prefix(args.prefix, 'paras.txt'))
 
 
