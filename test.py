@@ -44,6 +44,11 @@ def test(model, test_loader, criterion):
       probas_y.extend(output.data.cpu().numpy().tolist())
       pred_y.extend(output.data.cpu().max(1, keepdim=True)[1].numpy().flatten().tolist())
       test_y.extend(target.data.cpu().numpy().flatten().tolist())
+  i = 0
+  for item in pred_y:
+    print('\npredit is: {}, target is: {}\n'.format(item, test_y[i]))
+    i+=1
+
 
 def load_dataset():
   testdir = os.path.join('./data/data_augu', 'test')
