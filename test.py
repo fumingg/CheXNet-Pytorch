@@ -27,9 +27,9 @@ sys.path.append('./')
 from utils.util import set_prefix, write, add_prefix
 from utils.FocalLoss import FocalLoss
 
-def test(model, test_loader):
-  model.resnet18(pretrained=True)
-  model.load_state_dict(torch.load("./asset//model_best.pth.tar"))
+
+
+def test(model, test_loader, criterion):
   model.eval()
   for data in test_loader:
     data = data.cuda()
@@ -37,3 +37,32 @@ def test(model, test_loader):
     output = model(data)
     pred = output.data.max(1, keepdim=True)[1]
     print("\n5/5 test : {}\n".format(pred))
+
+def load_dataset():
+  testdir = os.path.join('./data/data_augu', 'test')
+  mean = [0.5186, 0.5186, 0.5186]
+  std = [0.1968, 0.1968, 0.1968]
+  normalize = transforms.Normalize(mean, std)
+
+  test_transforms = transforms.Compose([
+    transforms.CenterCrop(224),
+    transforms.ToTensor(),
+    normalize,
+  ])
+
+  test_dataset = ImageFolder(testdir, test_transforms)
+  print('load data-augumentation dataset successfully!!!')
+  test_loader = DataLoader(test_dataset,
+                           batch_size=90,
+                           shuffle=False,
+                           num_workers=1,
+                           pin_memory=True)
+
+  return test_loader
+
+criterion = nn.CrossEntropyLoss().cuda()
+test_loader = load_dataset()
+model = models.resnet18(pretrained=False)
+model.load_state_dict(torch.load('./assert/model_best.pth.tar'))
+
+test(model, test_loader, criterion)

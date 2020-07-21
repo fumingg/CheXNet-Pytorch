@@ -94,7 +94,7 @@ def main():
     # compute validate meter such as confusion matrix
     compute_validate_meter(model, add_prefix(args.prefix, args.best_model_path), val_loader)
     # save running parameter setting to json
-    test(model, test_loader, criterion)
+    validate(model, test_loader, criterion)
     write(vars(args), add_prefix(args.prefix, 'paras.txt'))
 
 
