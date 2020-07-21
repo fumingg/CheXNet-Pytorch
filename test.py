@@ -62,7 +62,7 @@ def load_dataset():
 
 criterion = nn.CrossEntropyLoss().cuda()
 test_loader = load_dataset()
-model = models.resnet18(pretrained=False)
+model = models.resnet101(pretrained=False)
 model.load_state_dict(torch.load('./classifier/model_best_new.pth.tar'))
 
 test(model, test_loader, criterion)
