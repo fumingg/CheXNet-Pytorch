@@ -109,14 +109,15 @@ def compute_validate_meter(model, best_model_path, val_loader):
     pred_y = list()
     test_y = list()
     probas_y = list()
-    for data, target in val_loader:
-        if args.cuda:
-            data, target = data.cuda(), target.cuda()
-        data, target = Variable(data, volatile=True), Variable(target)
-        output = model(data)
-        probas_y.extend(output.data.cpu().numpy().tolist())
-        pred_y.extend(output.data.cpu().max(1, keepdim=True)[1].numpy().flatten().tolist())
-        test_y.extend(target.data.cpu().numpy().flatten().tolist())
+    with torch.no_grad():
+        for data, target in val_loader:
+            if args.cuda:
+                data, target = data.cuda(), target.cuda()
+            data, target = Variable(data), Variable(target)
+            output = model(data)
+            probas_y.extend(output.data.cpu().numpy().tolist())
+            pred_y.extend(output.data.cpu().max(1, keepdim=True)[1].numpy().flatten().tolist())
+            test_y.extend(target.data.cpu().numpy().flatten().tolist())
     i=0
     for item in pred_y:
         print('\npredit is: {}, target is: {}\n'.format(item, test_y[i]))
@@ -276,15 +277,16 @@ def validate(model, val_loader, criterion):
     model.eval()
     test_loss = 0
     correct = 0
-    for data, target in val_loader:
-        if args.cuda:
-            data, target = data.cuda(), target.cuda()
-        data, target = Variable(data, volatile=True), Variable(target)
-        output = model(data)
-        test_loss += criterion(output, target).data
-        # get the index of the max log-probability
-        pred = output.data.max(1, keepdim=True)[1]
-        correct += pred.eq(target.data.view_as(pred)).long().cpu().sum()
+    with torch.no_grad():
+        for data, target in val_loader:
+            if args.cuda:
+                data, target = data.cuda(), target.cuda()
+            data, target = Variable(data), Variable(target)
+            output = model(data)
+            test_loss += criterion(output, target).data
+            # get the index of the max log-probability
+            pred = output.data.max(1, keepdim=True)[1]
+            correct += pred.eq(target.data.view_as(pred)).long().cpu().sum()
 
     test_loss /= len(val_loader.dataset)
     test_acc = 100. * correct / len(val_loader.dataset)
