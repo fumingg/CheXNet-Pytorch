@@ -35,15 +35,15 @@ def test(model, test_loader, criterion):
   pred_y = list()
   test_y = list()
   probas_y = list()
+  with torch.no_grad():
+    for data, target in test_loader:
+      data, target = data.cuda(), target.cuda()
 
-  for data, target in test_loader:
-    data, target = data.cuda(), target.cuda()
-
-    data, target = Variable(data, volatile=True), Variable(target)
-    output = model(data)
-    probas_y.extend(output.data.cpu().numpy().tolist())
-    pred_y.extend(output.data.cpu().max(1, keepdim=True)[1].numpy().flatten().tolist())
-    test_y.extend(target.data.cpu().numpy().flatten().tolist())
+      data, target = Variable(data), Variable(target)
+      output = model(data)
+      probas_y.extend(output.data.cpu().numpy().tolist())
+      pred_y.extend(output.data.cpu().max(1, keepdim=True)[1].numpy().flatten().tolist())
+      test_y.extend(target.data.cpu().numpy().flatten().tolist())
 
 def load_dataset():
   testdir = os.path.join('./data/data_augu', 'test')
