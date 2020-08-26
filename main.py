@@ -93,6 +93,7 @@ def main():
         time_elapsed // 60, time_elapsed % 60))
     # compute validate meter such as confusion matrix
     compute_validate_meter(model, add_prefix(args.prefix, args.best_model_path), val_loader)
+    compute_validate_meter(model, add_prefix(args.prefix, args.best_model_path), test_loader)
     # save running parameter setting to json
     # validate(model, test_loader, criterion)
     write(vars(args), add_prefix(args.prefix, 'paras.txt'))
